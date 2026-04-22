@@ -8,22 +8,15 @@
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       background: #0b5d3b;
       color: white;
       overflow: hidden;
     }
 
-    .table {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-    }
-
     .player {
       position: absolute;
       text-align: center;
-      font-weight: bold;
     }
 
     .top { top: 20px; left: 50%; transform: translateX(-50%); }
@@ -37,22 +30,19 @@
       margin-top: 10px;
       justify-content: center;
       flex-wrap: wrap;
-      max-width: 90vw;
     }
 
     .card {
-      width: 54px;
-      height: 78px;
+      width: 50px;
+      height: 70px;
       background: white;
       color: black;
-      border-radius: 10px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
       cursor: pointer;
-      user-select: none;
-      border: 2px solid #ddd;
     }
 
     .card.red {
@@ -62,296 +52,185 @@
     .card.back {
       background: #1e3a8a;
       color: white;
-      border: 2px solid #93c5fd;
       cursor: default;
     }
 
-    .center-area {
+    .center {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 320px;
-      height: 220px;
       transform: translate(-50%, -50%);
-      border: 2px dashed rgba(255,255,255,0.4);
+      border: 2px dashed white;
+      padding: 20px;
       border-radius: 20px;
-    }
-
-    .table-card {
-      position: absolute;
-      width: 60px;
-      height: 84px;
-      background: white;
-      color: black;
-      border-radius: 10px;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      border: 2px solid #ddd;
+      gap: 20px;
     }
 
-    .table-card.red {
-      color: red;
-    }
-
-    .from-top { top: 10px; left: 50%; transform: translateX(-50%); }
-    .from-left { left: 10px; top: 50%; transform: translateY(-50%); }
-    .from-right { right: 10px; top: 50%; transform: translateY(-50%); }
-    .from-bottom { bottom: 10px; left: 50%; transform: translateX(-50%); }
-
-    .status {
+    #status {
       position: absolute;
-      bottom: 120px;
+      bottom: 100px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.35);
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-size: 16px;
-    }
-
-    .controls {
-      position: absolute;
-      top: 12px;
-      right: 12px;
     }
 
     button {
-      padding: 10px 14px;
-      border: none;
-      border-radius: 10px;
-      font-weight: bold;
-      cursor: pointer;
+      position: absolute;
+      top: 10px;
+      right: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="table">
-    <div class="controls">
-      <button onclick="startGame()">New Game</button>
-    </div>
 
-    <div class="player top">
-      Bot 2
-      <div class="cards" id="bot2-hand"></div>
-    </div>
+<button onclick="startGame()">New Game</button>
 
-    <div class="player left">
-      Bot 1
-      <div class="cards" id="bot1-hand" style="flex-direction: column;"></div>
-    </div>
+<div class="player top">Bot 2<div class="cards" id="bot2"></div></div>
+<div class="player left">Bot 1<div class="cards" id="bot1"></div></div>
+<div class="player right">Bot 3<div class="cards" id="bot3"></div></div>
+<div class="player bottom">You<div class="cards" id="player"></div></div>
 
-    <div class="player right">
-      Bot 3
-      <div class="cards" id="bot3-hand" style="flex-direction: column;"></div>
-    </div>
+<div class="center" id="table"></div>
+<div id="status">Press New Game</div>
 
-    <div class="player bottom">
-      You
-      <div class="cards" id="player-hand"></div>
-    </div>
+<script>
+const suits = ["♠","♥","♦","♣"];
+const ranks = ["6","7","8","9","10","J","Q","K","A"];
+const value = {"6":1,"7":2,"8":3,"9":4,"10":5,"J":6,"Q":7,"K":8,"A":9};
 
-    <div class="center-area" id="table-area">
-      <div id="table-top"></div>
-      <div id="table-left"></div>
-      <div id="table-right"></div>
-      <div id="table-bottom"></div>
-    </div>
+let player=[], bot1=[], bot2=[], bot3=[];
+let table=[];
+let playerTurn=true;
 
-    <div class="status" id="status">Press "New Game"</div>
-  </div>
+function deck(){
+  let d=[];
+  suits.forEach(s=>ranks.forEach(r=>d.push({s,r})));
+  return d;
+}
 
-  <script>
-    const suits = ["♠", "♥", "♦", "♣"];
-    const ranks = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-    const rankValue = { "6": 1, "7": 2, "8": 3, "9": 4, "10": 5, "J": 6, "Q": 7, "K": 8, "A": 9 };
+function shuffle(d){
+  for(let i=d.length-1;i>0;i--){
+    let j=Math.floor(Math.random()*(i+1));
+    [d[i],d[j]]=[d[j],d[i]];
+  }
+}
 
-    let playerHand = [];
-    let bot1Hand = [];
-    let bot2Hand = [];
-    let bot3Hand = [];
-    let tableCards = {};
-    let playerCanPlay = true;
+function drawCard(c,click){
+  let d=document.createElement("div");
+  d.className="card";
+  if(c.s=="♥"||c.s=="♦") d.classList.add("red");
+  d.innerText=c.r+c.s;
+  if(click) d.onclick=click;
+  return d;
+}
 
-    function makeDeck() {
-      const deck = [];
-      for (const suit of suits) {
-        for (const rank of ranks) {
-          deck.push({ suit, rank });
-        }
-      }
-      return deck;
+function back(){
+  let d=document.createElement("div");
+  d.className="card back";
+  d.innerText="🂠";
+  return d;
+}
+
+function render(){
+  let p=document.getElementById("player");
+  let b1=document.getElementById("bot1");
+  let b2=document.getElementById("bot2");
+  let b3=document.getElementById("bot3");
+  let t=document.getElementById("table");
+
+  p.innerHTML=b1.innerHTML=b2.innerHTML=b3.innerHTML=t.innerHTML="";
+
+  player.forEach((c,i)=>p.appendChild(drawCard(c,()=>play(i))));
+  bot1.forEach(()=>b1.appendChild(back()));
+  bot2.forEach(()=>b2.appendChild(back()));
+  bot3.forEach(()=>b3.appendChild(back()));
+
+  table.forEach(c=>t.appendChild(drawCard(c)));
+}
+
+function startGame(){
+  let d=deck();
+  shuffle(d);
+  player=d.splice(0,5);
+  bot1=d.splice(0,5);
+  bot2=d.splice(0,5);
+  bot3=d.splice(0,5);
+  table=[];
+  playerTurn=true;
+  render();
+  status("Your turn");
+}
+
+function status(s){
+  document.getElementById("status").innerText=s;
+}
+
+function play(i){
+  if(!playerTurn) return;
+
+  let lead=table[0];
+  let chosen=player[i];
+
+  if(lead){
+    let hasSuit=player.some(c=>c.s==lead.s);
+    if(hasSuit && chosen.s!=lead.s){
+      alert("Follow suit!");
+      return;
     }
+  }
 
-    function shuffle(deck) {
-      for (let i = deck.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [deck[i], deck[j]] = [deck[j], deck[i]];
-      }
-    }
+  table.push(player.splice(i,1)[0]);
+  playerTurn=false;
+  render();
 
-    function drawCardElement(card, clickable = false, onClick = null) {
-      const div = document.createElement("div");
-      div.className = "card";
-      if (card.suit === "♥" || card.suit === "♦") div.classList.add("red");
-      div.textContent = card.rank + card.suit;
-      if (clickable && onClick) div.onclick = onClick;
-      return div;
-    }
+  setTimeout(botMove,500);
+}
 
-    function drawBack() {
-      const div = document.createElement("div");
-      div.className = "card back";
-      div.textContent = "🂠";
-      return div;
-    }
+function botMove(){
+  [bot1,bot2,bot3].forEach(bot=>{
+    if(bot.length>0){
+      let lead=table[0];
+      let options=bot;
 
-    function renderHands() {
-      const player = document.getElementById("player-hand");
-      const bot1 = document.getElementById("bot1-hand");
-      const bot2 = document.getElementById("bot2-hand");
-      const bot3 = document.getElementById("bot3-hand");
-
-      player.innerHTML = "";
-      bot1.innerHTML = "";
-      bot2.innerHTML = "";
-      bot3.innerHTML = "";
-
-      playerHand.forEach((card, index) => {
-        const el = drawCardElement(card, playerCanPlay, () => playPlayerCard(index));
-        player.appendChild(el);
-      });
-
-      bot1Hand.forEach(() => bot1.appendChild(drawBack()));
-      bot2Hand.forEach(() => bot2.appendChild(drawBack()));
-      bot3Hand.forEach(() => bot3.appendChild(drawBack()));
-    }
-
-    function renderTable() {
-      document.getElementById("table-top").innerHTML = "";
-      document.getElementById("table-left").innerHTML = "";
-      document.getElementById("table-right").innerHTML = "";
-      document.getElementById("table-bottom").innerHTML = "";
-
-      if (tableCards.top) {
-        const el = drawCardElement(tableCards.top);
-        el.classList.add("table-card", "from-top");
-        document.getElementById("table-top").appendChild(el);
-      }
-      if (tableCards.left) {
-        const el = drawCardElement(tableCards.left);
-        el.classList.add("table-card", "from-left");
-        document.getElementById("table-left").appendChild(el);
-      }
-      if (tableCards.right) {
-        const el = drawCardElement(tableCards.right);
-        el.classList.add("table-card", "from-right");
-        document.getElementById("table-right").appendChild(el);
-      }
-      if (tableCards.bottom) {
-        const el = drawCardElement(tableCards.bottom);
-        el.classList.add("table-card", "from-bottom");
-        document.getElementById("table-bottom").appendChild(el);
-      }
-    }
-
-    function setStatus(text) {
-      document.getElementById("status").textContent = text;
-    }
-
-    function startGame() {
-      let deck = makeDeck();
-      shuffle(deck);
-
-      playerHand = deck.splice(0, 5);
-      bot1Hand = deck.splice(0, 5);
-      bot2Hand = deck.splice(0, 5);
-      bot3Hand = deck.splice(0, 5);
-
-      tableCards = {};
-      playerCanPlay = true;
-
-      renderHands();
-      renderTable();
-      setStatus("Your turn. Tap a card.");
-    }
-
-    function playPlayerCard(index) {
-      if (!playerCanPlay) return;
-
-      const card = playerHand.splice(index, 1)[0];
-      tableCards.bottom = card;
-      playerCanPlay = false;
-
-      renderHands();
-      renderTable();
-      setStatus("Bots are playing...");
-
-      setTimeout(bot1Play, 600);
-    }
-
-    function bot1Play() {
-      if (bot1Hand.length > 0) {
-        const index = Math.floor(Math.random() * bot1Hand.length);
-        tableCards.left = bot1Hand.splice(index, 1)[0];
-      }
-      renderHands();
-      renderTable();
-      setTimeout(bot2Play, 600);
-    }
-
-    function bot2Play() {
-      if (bot2Hand.length > 0) {
-        const index = Math.floor(Math.random() * bot2Hand.length);
-        tableCards.top = bot2Hand.splice(index, 1)[0];
-      }
-      renderHands();
-      renderTable();
-      setTimeout(bot3Play, 600);
-    }
-
-    function bot3Play() {
-      if (bot3Hand.length > 0) {
-        const index = Math.floor(Math.random() * bot3Hand.length);
-        tableCards.right = bot3Hand.splice(index, 1)[0];
-      }
-      renderHands();
-      renderTable();
-      setTimeout(finishTrick, 900);
-    }
-
-    function finishTrick() {
-      const plays = [
-        { seat: "You", card: tableCards.bottom },
-        { seat: "Bot 1", card: tableCards.left },
-        { seat: "Bot 2", card: tableCards.top },
-        { seat: "Bot 3", card: tableCards.right }
-      ].filter(x => x.card);
-
-      let winner = plays[0];
-      for (const play of plays) {
-        if (rankValue[play.card.rank] > rankValue[winner.card.rank]) {
-          winner = play;
-        }
+      if(lead){
+        let same=bot.filter(c=>c.s==lead.s);
+        if(same.length>0) options=same;
       }
 
-      setStatus("Trick winner: " + winner.seat);
-
-      setTimeout(() => {
-        tableCards = {};
-        renderTable();
-
-        if (playerHand.length === 0) {
-          setStatus("Round finished. Press New Game.");
-          return;
-        }
-
-        playerCanPlay = true;
-        renderHands();
-        setStatus("Your turn. Tap a card.");
-      }, 1400);
+      let card=options[Math.floor(Math.random()*options.length)];
+      bot.splice(bot.indexOf(card),1);
+      table.push(card);
     }
-  </script>
+  });
+
+  render();
+  setTimeout(endTrick,700);
+}
+
+function endTrick(){
+  let lead=table[0].s;
+  let win=table[0];
+
+  table.forEach(c=>{
+    if(c.s==lead && value[c.r]>value[win.r]){
+      win=c;
+    }
+  });
+
+  status("Winner: "+win.r+win.s);
+
+  setTimeout(()=>{
+    table=[];
+    if(player.length==0){
+      status("Round finished");
+      return;
+    }
+    playerTurn=true;
+    render();
+    status("Your turn");
+  },1000);
+}
+</script>
+
 </body>
 </html>
