@@ -3,23 +3,84 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Joker Prototype</title>
+  <title>Joker Game</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       margin: 0;
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       background: #0b5d3b;
       color: white;
       overflow: hidden;
     }
 
+    .table {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 220px;
+      background: rgba(0,0,0,0.35);
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 14px;
+      z-index: 10;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+    }
+
+    .panel table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    .panel td, .panel th {
+      padding: 4px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .topbar {
+      position: absolute;
+      top: 10px;
+      left: 250px;
+      right: 120px;
+      background: rgba(0,0,0,0.35);
+      border-radius: 14px;
+      padding: 10px 14px;
+      text-align: center;
+      font-size: 16px;
+      z-index: 10;
+    }
+
+    .newgame {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 10;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
     .player {
       position: absolute;
       text-align: center;
+      font-weight: bold;
     }
 
-    .top { top: 20px; left: 50%; transform: translateX(-50%); }
+    .top { top: 70px; left: 50%; transform: translateX(-50%); }
     .left { left: 20px; top: 50%; transform: translateY(-50%); }
     .right { right: 20px; top: 50%; transform: translateY(-50%); }
     .bottom { bottom: 20px; left: 50%; transform: translateX(-50%); }
@@ -30,19 +91,28 @@
       margin-top: 10px;
       justify-content: center;
       flex-wrap: wrap;
+      max-width: 90vw;
+    }
+
+    .cards.vertical {
+      flex-direction: column;
+      align-items: center;
     }
 
     .card {
-      width: 50px;
-      height: 70px;
+      width: 56px;
+      height: 80px;
       background: white;
       color: black;
-      border-radius: 8px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
       cursor: pointer;
+      user-select: none;
+      border: 2px solid #ddd;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
     }
 
     .card.red {
@@ -52,185 +122,500 @@
     .card.back {
       background: #1e3a8a;
       color: white;
+      border: 2px solid #93c5fd;
       cursor: default;
     }
 
-    .center {
+    .center-area {
       position: absolute;
       top: 50%;
       left: 50%;
+      width: 360px;
+      height: 240px;
       transform: translate(-50%, -50%);
-      border: 2px dashed white;
-      padding: 20px;
-      border-radius: 20px;
-      display: flex;
-      gap: 20px;
+      border: 2px dashed rgba(255,255,255,0.45);
+      border-radius: 24px;
     }
 
-    #status {
+    .table-card {
       position: absolute;
-      bottom: 100px;
+      width: 62px;
+      height: 86px;
+      background: white;
+      color: black;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border: 2px solid #ddd;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+    }
+
+    .table-card.red {
+      color: red;
+    }
+
+    .from-top { top: 12px; left: 50%; transform: translateX(-50%); }
+    .from-left { left: 12px; top: 50%; transform: translateY(-50%); }
+    .from-right { right: 12px; top: 50%; transform: translateY(-50%); }
+    .from-bottom { bottom: 12px; left: 50%; transform: translateX(-50%); }
+
+    .status {
+      position: absolute;
+      bottom: 130px;
       left: 50%;
       transform: translateX(-50%);
+      background: rgba(0,0,0,0.4);
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      z-index: 10;
     }
 
-    button {
+    .bid-box {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      bottom: 190px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.45);
+      padding: 14px;
+      border-radius: 14px;
+      text-align: center;
+      z-index: 20;
+    }
+
+    .bid-box button {
+      margin: 4px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
+  <div class="table">
+    <div class="panel">
+      <h3>Score Table</h3>
+      <div id="round-info">Round: 1</div>
+      <div id="trump-info">Trump: ?</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Bid</th>
+            <th>Won</th>
+            <th>Pts</th>
+          </tr>
+        </thead>
+        <tbody id="score-body"></tbody>
+      </table>
+    </div>
 
-<button onclick="startGame()">New Game</button>
+    <div class="topbar" id="topbar">
+      Joker Mini Game
+    </div>
 
-<div class="player top">Bot 2<div class="cards" id="bot2"></div></div>
-<div class="player left">Bot 1<div class="cards" id="bot1"></div></div>
-<div class="player right">Bot 3<div class="cards" id="bot3"></div></div>
-<div class="player bottom">You<div class="cards" id="player"></div></div>
+    <button class="newgame" onclick="startMatch()">New Match</button>
 
-<div class="center" id="table"></div>
-<div id="status">Press New Game</div>
+    <div class="player top">
+      Bot 2
+      <div class="cards" id="bot2-hand"></div>
+    </div>
 
-<script>
-const suits = ["♠","♥","♦","♣"];
-const ranks = ["6","7","8","9","10","J","Q","K","A"];
-const value = {"6":1,"7":2,"8":3,"9":4,"10":5,"J":6,"Q":7,"K":8,"A":9};
+    <div class="player left">
+      Bot 1
+      <div class="cards vertical" id="bot1-hand"></div>
+    </div>
 
-let player=[], bot1=[], bot2=[], bot3=[];
-let table=[];
-let playerTurn=true;
+    <div class="player right">
+      Bot 3
+      <div class="cards vertical" id="bot3-hand"></div>
+    </div>
 
-function deck(){
-  let d=[];
-  suits.forEach(s=>ranks.forEach(r=>d.push({s,r})));
-  return d;
-}
+    <div class="player bottom">
+      You
+      <div class="cards" id="player-hand"></div>
+    </div>
 
-function shuffle(d){
-  for(let i=d.length-1;i>0;i--){
-    let j=Math.floor(Math.random()*(i+1));
-    [d[i],d[j]]=[d[j],d[i]];
-  }
-}
+    <div class="center-area">
+      <div id="table-top"></div>
+      <div id="table-left"></div>
+      <div id="table-right"></div>
+      <div id="table-bottom"></div>
+    </div>
 
-function drawCard(c,click){
-  let d=document.createElement("div");
-  d.className="card";
-  if(c.s=="♥"||c.s=="♦") d.classList.add("red");
-  d.innerText=c.r+c.s;
-  if(click) d.onclick=click;
-  return d;
-}
+    <div class="status" id="status">Press New Match</div>
 
-function back(){
-  let d=document.createElement("div");
-  d.className="card back";
-  d.innerText="🂠";
-  return d;
-}
+    <div class="bid-box" id="bid-box" style="display:none;">
+      <div style="margin-bottom:10px;">Choose your bid</div>
+      <div id="bid-buttons"></div>
+    </div>
+  </div>
 
-function render(){
-  let p=document.getElementById("player");
-  let b1=document.getElementById("bot1");
-  let b2=document.getElementById("bot2");
-  let b3=document.getElementById("bot3");
-  let t=document.getElementById("table");
+  <script>
+    const suits = ["♠", "♥", "♦", "♣"];
+    const ranks = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    const rankValue = { "6": 1, "7": 2, "8": 3, "9": 4, "10": 5, "J": 6, "Q": 7, "K": 8, "A": 9 };
 
-  p.innerHTML=b1.innerHTML=b2.innerHTML=b3.innerHTML=t.innerHTML="";
+    let roundNumber = 1;
+    let trumpSuit = null;
+    let leadSeat = "bottom";
+    let turnOrder = [];
+    let currentTurnIndex = 0;
 
-  player.forEach((c,i)=>p.appendChild(drawCard(c,()=>play(i))));
-  bot1.forEach(()=>b1.appendChild(back()));
-  bot2.forEach(()=>b2.appendChild(back()));
-  bot3.forEach(()=>b3.appendChild(back()));
+    let hands = {
+      bottom: [],
+      left: [],
+      top: [],
+      right: []
+    };
 
-  table.forEach(c=>t.appendChild(drawCard(c)));
-}
+    let tableCards = {};
+    let players = {
+      bottom: { name: "You", bid: null, won: 0, points: 0 },
+      left: { name: "Bot 1", bid: null, won: 0, points: 0 },
+      top: { name: "Bot 2", bid: null, won: 0, points: 0 },
+      right: { name: "Bot 3", bid: null, won: 0, points: 0 }
+    };
 
-function startGame(){
-  let d=deck();
-  shuffle(d);
-  player=d.splice(0,5);
-  bot1=d.splice(0,5);
-  bot2=d.splice(0,5);
-  bot3=d.splice(0,5);
-  table=[];
-  playerTurn=true;
-  render();
-  status("Your turn");
-}
-
-function status(s){
-  document.getElementById("status").innerText=s;
-}
-
-function play(i){
-  if(!playerTurn) return;
-
-  let lead=table[0];
-  let chosen=player[i];
-
-  if(lead){
-    let hasSuit=player.some(c=>c.s==lead.s);
-    if(hasSuit && chosen.s!=lead.s){
-      alert("Follow suit!");
-      return;
+    function makeDeck() {
+      const deck = [];
+      for (const suit of suits) {
+        for (const rank of ranks) {
+          deck.push({ suit, rank });
+        }
+      }
+      return deck;
     }
-  }
 
-  table.push(player.splice(i,1)[0]);
-  playerTurn=false;
-  render();
+    function shuffle(deck) {
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+    }
 
-  setTimeout(botMove,500);
-}
+    function isRed(suit) {
+      return suit === "♥" || suit === "♦";
+    }
 
-function botMove(){
-  [bot1,bot2,bot3].forEach(bot=>{
-    if(bot.length>0){
-      let lead=table[0];
-      let options=bot;
+    function drawCardElement(card, clickable = false, onClick = null) {
+      const div = document.createElement("div");
+      div.className = "card";
+      if (isRed(card.suit)) div.classList.add("red");
+      div.textContent = card.rank + card.suit;
+      if (clickable && onClick) div.onclick = onClick;
+      return div;
+    }
 
-      if(lead){
-        let same=bot.filter(c=>c.s==lead.s);
-        if(same.length>0) options=same;
+    function drawBack() {
+      const div = document.createElement("div");
+      div.className = "card back";
+      div.textContent = "🂠";
+      return div;
+    }
+
+    function drawTableCard(card, posClass) {
+      const div = document.createElement("div");
+      div.className = "table-card " + posClass;
+      if (isRed(card.suit)) div.classList.add("red");
+      div.textContent = card.rank + card.suit;
+      return div;
+    }
+
+    function setStatus(text) {
+      document.getElementById("status").textContent = text;
+    }
+
+    function updateTopbar(text) {
+      document.getElementById("topbar").textContent = text;
+    }
+
+    function renderHands() {
+      const player = document.getElementById("player-hand");
+      const bot1 = document.getElementById("bot1-hand");
+      const bot2 = document.getElementById("bot2-hand");
+      const bot3 = document.getElementById("bot3-hand");
+
+      player.innerHTML = "";
+      bot1.innerHTML = "";
+      bot2.innerHTML = "";
+      bot3.innerHTML = "";
+
+      hands.bottom.forEach((card, index) => {
+        const clickable = turnOrder[currentTurnIndex] === "bottom";
+        player.appendChild(drawCardElement(card, clickable, () => tryPlayHuman(index)));
+      });
+
+      hands.left.forEach(() => bot1.appendChild(drawBack()));
+      hands.top.forEach(() => bot2.appendChild(drawBack()));
+      hands.right.forEach(() => bot3.appendChild(drawBack()));
+    }
+
+    function renderTable() {
+      document.getElementById("table-top").innerHTML = "";
+      document.getElementById("table-left").innerHTML = "";
+      document.getElementById("table-right").innerHTML = "";
+      document.getElementById("table-bottom").innerHTML = "";
+
+      if (tableCards.top) document.getElementById("table-top").appendChild(drawTableCard(tableCards.top, "from-top"));
+      if (tableCards.left) document.getElementById("table-left").appendChild(drawTableCard(tableCards.left, "from-left"));
+      if (tableCards.right) document.getElementById("table-right").appendChild(drawTableCard(tableCards.right, "from-right"));
+      if (tableCards.bottom) document.getElementById("table-bottom").appendChild(drawTableCard(tableCards.bottom, "from-bottom"));
+    }
+
+    function renderScoreboard() {
+      document.getElementById("round-info").textContent = "Round: " + roundNumber;
+      document.getElementById("trump-info").textContent = "Trump: " + (trumpSuit || "?");
+
+      const body = document.getElementById("score-body");
+      body.innerHTML = "";
+
+      ["bottom", "left", "top", "right"].forEach(seat => {
+        const p = players[seat];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.name}</td>
+          <td>${p.bid === null ? "-" : p.bid}</td>
+          <td>${p.won}</td>
+          <td>${p.points}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function resetRoundState() {
+      tableCards = {};
+      players.bottom.bid = null;
+      players.left.bid = null;
+      players.top.bid = null;
+      players.right.bid = null;
+      players.bottom.won = 0;
+      players.left.won = 0;
+      players.top.won = 0;
+      players.right.won = 0;
+    }
+
+    function dealCards() {
+      const deck = makeDeck();
+      shuffle(deck);
+
+      hands.bottom = deck.splice(0, 5);
+      hands.left = deck.splice(0, 5);
+      hands.top = deck.splice(0, 5);
+      hands.right = deck.splice(0, 5);
+
+      trumpSuit = suits[Math.floor(Math.random() * suits.length)];
+    }
+
+    function startMatch() {
+      roundNumber = 1;
+      players.bottom.points = 0;
+      players.left.points = 0;
+      players.top.points = 0;
+      players.right.points = 0;
+      startRound();
+    }
+
+    function startRound() {
+      resetRoundState();
+      dealCards();
+      leadSeat = "bottom";
+      turnOrder = buildTurnOrder(leadSeat);
+      currentTurnIndex = 0;
+
+      renderHands();
+      renderTable();
+      renderScoreboard();
+      updateTopbar("Bidding phase");
+      setStatus("Choose your bid");
+      showBidBox();
+    }
+
+    function buildTurnOrder(startSeat) {
+      const order = ["bottom", "left", "top", "right"];
+      const idx = order.indexOf(startSeat);
+      return [...order.slice(idx), ...order.slice(0, idx)];
+    }
+
+    function showBidBox() {
+      const box = document.getElementById("bid-box");
+      const btns = document.getElementById("bid-buttons");
+      btns.innerHTML = "";
+      for (let i = 0; i <= 5; i++) {
+        const b = document.createElement("button");
+        b.textContent = i;
+        b.onclick = () => setHumanBid(i);
+        btns.appendChild(b);
+      }
+      box.style.display = "block";
+    }
+
+    function setHumanBid(value) {
+      players.bottom.bid = value;
+      players.left.bid = randomBotBid();
+      players.top.bid = randomBotBid();
+      players.right.bid = randomBotBid();
+
+      document.getElementById("bid-box").style.display = "none";
+      renderScoreboard();
+      updateTopbar("Play phase");
+      setStatus("Your turn — click a card");
+      renderHands();
+    }
+
+    function randomBotBid() {
+      return Math.floor(Math.random() * 3);
+    }
+
+    function getLeadSuit() {
+      const firstSeat = turnOrder[0];
+      return tableCards[firstSeat] ? tableCards[firstSeat].suit : null;
+    }
+
+    function validCardsForSeat(seat) {
+      const hand = hands[seat];
+      const leadSuit = getLeadSuit();
+      if (!leadSuit) return hand;
+
+      const sameSuit = hand.filter(c => c.suit === leadSuit);
+      return sameSuit.length > 0 ? sameSuit : hand;
+    }
+
+    function tryPlayHuman(index) {
+      if (turnOrder[currentTurnIndex] !== "bottom") return;
+
+      const chosen = hands.bottom[index];
+      const valid = validCardsForSeat("bottom");
+      const allowed = valid.some(c => c.rank === chosen.rank && c.suit === chosen.suit);
+
+      if (!allowed) {
+        alert("You must follow suit.");
+        return;
       }
 
-      let card=options[Math.floor(Math.random()*options.length)];
-      bot.splice(bot.indexOf(card),1);
-      table.push(card);
+      playCard("bottom", index);
+      nextTurn();
     }
-  });
 
-  render();
-  setTimeout(endTrick,700);
-}
-
-function endTrick(){
-  let lead=table[0].s;
-  let win=table[0];
-
-  table.forEach(c=>{
-    if(c.s==lead && value[c.r]>value[win.r]){
-      win=c;
+    function playCard(seat, index) {
+      const card = hands[seat].splice(index, 1)[0];
+      tableCards[seat] = card;
+      renderHands();
+      renderTable();
     }
-  });
 
-  status("Winner: "+win.r+win.s);
-
-  setTimeout(()=>{
-    table=[];
-    if(player.length==0){
-      status("Round finished");
-      return;
+    function botPlay(seat) {
+      const valid = validCardsForSeat(seat);
+      const chosen = valid[Math.floor(Math.random() * valid.length)];
+      const index = hands[seat].findIndex(c => c.rank === chosen.rank && c.suit === chosen.suit);
+      playCard(seat, index);
     }
-    playerTurn=true;
-    render();
-    status("Your turn");
-  },1000);
-}
-</script>
 
+    function nextTurn() {
+      currentTurnIndex++;
+
+      if (currentTurnIndex >= turnOrder.length) {
+        setTimeout(finishTrick, 800);
+        return;
+      }
+
+      const seat = turnOrder[currentTurnIndex];
+
+      if (seat === "bottom") {
+        setStatus("Your turn — click a card");
+        renderHands();
+      } else {
+        setStatus(players[seat].name + " is thinking...");
+        setTimeout(() => {
+          botPlay(seat);
+          nextTurn();
+        }, 700);
+      }
+    }
+
+    function cardBeats(a, b, leadSuit, trumpSuit) {
+      const aTrump = a.suit === trumpSuit;
+      const bTrump = b.suit === trumpSuit;
+
+      if (aTrump && !bTrump) return true;
+      if (!aTrump && bTrump) return false;
+
+      if (a.suit === b.suit) {
+        return rankValue[a.rank] > rankValue[b.rank];
+      }
+
+      if (a.suit === leadSuit && b.suit !== leadSuit) return true;
+      return false;
+    }
+
+    function finishTrick() {
+      const leadSuit = tableCards[turnOrder[0]].suit;
+      let winnerSeat = turnOrder[0];
+      let winnerCard = tableCards[winnerSeat];
+
+      for (let i = 1; i < turnOrder.length; i++) {
+        const seat = turnOrder[i];
+        const card = tableCards[seat];
+        if (cardBeats(card, winnerCard, leadSuit, trumpSuit)) {
+          winnerSeat = seat;
+          winnerCard = card;
+        }
+      }
+
+      players[winnerSeat].won += 1;
+      leadSeat = winnerSeat;
+
+      renderScoreboard();
+      setStatus("Trick winner: " + players[winnerSeat].name);
+
+      setTimeout(() => {
+        tableCards = {};
+        renderTable();
+
+        if (hands.bottom.length === 0 && hands.left.length === 0 && hands.top.length === 0 && hands.right.length === 0) {
+          finishRound();
+          return;
+        }
+
+        turnOrder = buildTurnOrder(leadSeat);
+        currentTurnIndex = 0;
+
+        if (turnOrder[0] === "bottom") {
+          setStatus("Your turn — click a card");
+          renderHands();
+        } else {
+          const seat = turnOrder[0];
+          setStatus(players[seat].name + " starts");
+          setTimeout(() => {
+            botPlay(seat);
+            nextTurn();
+          }, 700);
+        }
+      }, 1200);
+    }
+
+    function finishRound() {
+      ["bottom", "left", "top", "right"].forEach(seat => {
+        const p = players[seat];
+        if (p.bid === p.won) {
+          p.points += 10 + p.bid;
+        }
+      });
+
+      renderScoreboard();
+      updateTopbar("Round finished");
+      setStatus("Round over");
+
+      roundNumber++;
+
+      setTimeout(() => {
+        startRound();
+      }, 2000);
+    }
+  </script>
 </body>
 </html>
