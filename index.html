@@ -1,7 +1,61 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Click Game</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial;
+      background: #111;
+      color: white;
+      padding-top: 50px;
+    }
+    button {
+      font-size: 24px;
+      padding: 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
 <body>
-<h1>Hello 😄</h1>
-<button onclick="alert('It works!')">Click me</button>
+
+<h1>Click Game 🎮</h1>
+<p>Click as fast as you can!</p>
+
+<h2 id="score">0</h2>
+<h3 id="time">5</h3>
+
+<button onclick="clickGame()">CLICK!</button>
+
+<script>
+let score = 0;
+let time = 5;
+let started = false;
+
+function clickGame() {
+  if (!started) {
+    started = true;
+    startTimer();
+  }
+  score++;
+  document.getElementById("score").innerText = score;
+}
+
+function startTimer() {
+  let interval = setInterval(() => {
+    time--;
+    document.getElementById("time").innerText = time;
+
+    if (time <= 0) {
+      clearInterval(interval);
+      alert("Game over! Score: " + score);
+    }
+  }, 1000);
+}
+</script>
+
 </body>
 </html>
