@@ -3,14 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Joker Game</title>
+  <title>Advanced Joker Mini App</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    :root {
+      --bg: #0d6a43;
+      --panel: rgba(0,0,0,0.34);
+      --panel2: rgba(255,255,255,0.10);
+      --text: #ffffff;
+      --muted: #d7e7dd;
+      --gold: #ffd54a;
+      --cardw: 62px;
+      --cardh: 88px;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #0b5d3b;
-      color: white;
+      background: radial-gradient(circle at center, #117549 0%, #0d6a43 45%, #0a5637 100%);
+      color: var(--text);
       overflow: hidden;
     }
 
@@ -20,188 +33,302 @@
       height: 100vh;
     }
 
-    .panel {
+    .left-panel {
       position: absolute;
       top: 10px;
       left: 10px;
-      width: 220px;
-      background: rgba(0,0,0,0.35);
-      border-radius: 14px;
+      width: 260px;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
       padding: 12px;
-      font-size: 14px;
-      z-index: 10;
+      backdrop-filter: blur(6px);
+      z-index: 20;
     }
 
-    .panel h3 {
+    .left-panel h2 {
       margin: 0 0 10px 0;
-      font-size: 18px;
+      font-size: 20px;
     }
 
-    .panel table {
+    .meta {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .meta strong {
+      color: white;
+    }
+
+    .score-table, .history-table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 8px;
+      font-size: 13px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      overflow: hidden;
     }
 
-    .panel td, .panel th {
-      padding: 4px;
+    .score-table th, .score-table td,
+    .history-table th, .history-table td {
+      padding: 6px 5px;
       text-align: center;
-      border-bottom: 1px solid rgba(255,255,255,0.15);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .score-table th, .history-table th {
+      background: rgba(255,255,255,0.06);
+      font-size: 12px;
     }
 
     .topbar {
       position: absolute;
       top: 10px;
-      left: 250px;
+      left: 285px;
       right: 120px;
-      background: rgba(0,0,0,0.35);
-      border-radius: 14px;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
       padding: 10px 14px;
       text-align: center;
-      font-size: 16px;
-      z-index: 10;
+      font-size: 17px;
+      font-weight: bold;
+      z-index: 20;
+      backdrop-filter: blur(6px);
     }
 
-    .newgame {
+    .restart-btn {
       position: absolute;
       top: 10px;
       right: 10px;
-      z-index: 10;
-      padding: 10px 14px;
+      z-index: 20;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
+      padding: 11px 15px;
       font-weight: bold;
       cursor: pointer;
+      background: white;
+    }
+
+    .status {
+      position: absolute;
+      bottom: 132px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-size: 16px;
+      z-index: 20;
+      min-width: 280px;
+      text-align: center;
+      backdrop-filter: blur(6px);
     }
 
     .player {
       position: absolute;
       text-align: center;
-      font-weight: bold;
+      z-index: 5;
     }
 
-    .top { top: 70px; left: 50%; transform: translateX(-50%); }
-    .left { left: 20px; top: 50%; transform: translateY(-50%); }
-    .right { right: 20px; top: 50%; transform: translateY(-50%); }
-    .bottom { bottom: 20px; left: 50%; transform: translateX(-50%); }
+    .player-name {
+      font-weight: bold;
+      margin-bottom: 8px;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.4);
+    }
+
+    .subinfo {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .top { top: 78px; left: 50%; transform: translateX(-50%); }
+    .left { left: 18px; top: 52%; transform: translateY(-50%); }
+    .right { right: 18px; top: 52%; transform: translateY(-50%); }
+    .bottom { bottom: 18px; left: 50%; transform: translateX(-50%); }
 
     .cards {
       display: flex;
       gap: 8px;
-      margin-top: 10px;
       justify-content: center;
+      align-items: center;
       flex-wrap: wrap;
-      max-width: 90vw;
+      max-width: 72vw;
     }
 
     .cards.vertical {
       flex-direction: column;
-      align-items: center;
+      max-width: none;
     }
 
     .card {
-      width: 56px;
-      height: 80px;
-      background: white;
-      color: black;
-      border-radius: 10px;
+      width: var(--cardw);
+      height: var(--cardh);
+      background: linear-gradient(180deg, #ffffff 0%, #f1f1f1 100%);
+      color: #111;
+      border-radius: 12px;
+      border: 2px solid #dadada;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
+      font-size: 20px;
       cursor: pointer;
       user-select: none;
-      border: 2px solid #ddd;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 14px rgba(0,0,0,0.3);
     }
 
     .card.red {
-      color: red;
+      color: #d22;
     }
 
     .card.back {
-      background: #1e3a8a;
+      background: linear-gradient(180deg, #1e3a8a 0%, #2238a6 100%);
       color: white;
-      border: 2px solid #93c5fd;
+      border-color: #8eb3ff;
       cursor: default;
+      font-size: 26px;
+    }
+
+    .card.disabled {
+      opacity: 0.45;
+      transform: none !important;
+      cursor: not-allowed;
+    }
+
+    .card.small {
+      width: 54px;
+      height: 78px;
+      font-size: 16px;
+    }
+
+    .joker-label {
+      position: absolute;
+      bottom: 4px;
+      font-size: 10px;
+      font-weight: normal;
+      opacity: 0.8;
     }
 
     .center-area {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 360px;
-      height: 240px;
+      width: 420px;
+      height: 270px;
       transform: translate(-50%, -50%);
       border: 2px dashed rgba(255,255,255,0.45);
       border-radius: 24px;
+      background: rgba(255,255,255,0.03);
+      z-index: 1;
+    }
+
+    .trick-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 13px;
+      color: rgba(255,255,255,0.65);
     }
 
     .table-card {
       position: absolute;
-      width: 62px;
-      height: 86px;
-      background: white;
-      color: black;
-      border-radius: 10px;
+      width: 66px;
+      height: 92px;
+      background: linear-gradient(180deg, #ffffff 0%, #f1f1f1 100%);
+      color: #111;
+      border-radius: 12px;
+      border: 2px solid #dadada;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 22px;
       font-weight: bold;
-      border: 2px solid #ddd;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.28);
     }
 
-    .table-card.red {
-      color: red;
-    }
+    .table-card.red { color: #d22; }
 
-    .from-top { top: 12px; left: 50%; transform: translateX(-50%); }
-    .from-left { left: 12px; top: 50%; transform: translateY(-50%); }
-    .from-right { right: 12px; top: 50%; transform: translateY(-50%); }
-    .from-bottom { bottom: 12px; left: 50%; transform: translateX(-50%); }
-
-    .status {
-      position: absolute;
-      bottom: 130px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.4);
-      padding: 10px 16px;
-      border-radius: 12px;
-      font-size: 16px;
-      z-index: 10;
-    }
+    .from-top { top: 14px; left: 50%; transform: translateX(-50%); }
+    .from-left { left: 14px; top: 50%; transform: translateY(-50%); }
+    .from-right { right: 14px; top: 50%; transform: translateY(-50%); }
+    .from-bottom { bottom: 14px; left: 50%; transform: translateX(-50%); }
 
     .bid-box {
       position: absolute;
-      bottom: 190px;
       left: 50%;
+      bottom: 190px;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.45);
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
       padding: 14px;
-      border-radius: 14px;
+      z-index: 30;
       text-align: center;
-      z-index: 20;
+      min-width: 330px;
+      backdrop-filter: blur(6px);
     }
 
-    .bid-box button {
-      margin: 4px;
-      padding: 8px 12px;
+    .bid-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .bid-buttons button {
       border: none;
-      border-radius: 8px;
-      font-weight: bold;
+      border-radius: 10px;
+      padding: 10px 13px;
       cursor: pointer;
+      font-weight: bold;
+      min-width: 44px;
+    }
+
+    .history-wrap {
+      margin-top: 10px;
+      max-height: 150px;
+      overflow: auto;
+      border-radius: 10px;
+    }
+
+    .highlight {
+      color: var(--gold);
+      font-weight: bold;
+    }
+
+    .you-turn {
+      outline: 3px solid rgba(255,213,74,0.45);
     }
   </style>
 </head>
 <body>
   <div class="table">
-    <div class="panel">
-      <h3>Score Table</h3>
-      <div id="round-info">Round: 1</div>
-      <div id="trump-info">Trump: ?</div>
-      <table>
+    <div class="left-panel">
+      <h2>Joker</h2>
+
+      <div class="meta">
+        <div>Round: <strong id="round-info">1</strong></div>
+        <div>Trump: <strong id="trump-info">?</strong></div>
+        <div>Lead: <strong id="lead-info">You</strong></div>
+      </div>
+
+      <table class="score-table">
         <thead>
           <tr>
             <th>Player</th>
@@ -212,35 +339,52 @@
         </thead>
         <tbody id="score-body"></tbody>
       </table>
+
+      <div class="history-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>R</th>
+              <th>You</th>
+              <th>B1</th>
+              <th>B2</th>
+              <th>B3</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
     </div>
 
-    <div class="topbar" id="topbar">
-      Joker Mini Game
-    </div>
-
-    <button class="newgame" onclick="startMatch()">New Match</button>
+    <div class="topbar" id="topbar">Advanced Joker Mini App</div>
+    <button class="restart-btn" onclick="startMatch()">New Match</button>
 
     <div class="player top">
-      Bot 2
-      <div class="cards" id="bot2-hand"></div>
+      <div class="player-name" id="name-top">Bot 2</div>
+      <div class="cards" id="hand-top"></div>
+      <div class="subinfo" id="sub-top"></div>
     </div>
 
     <div class="player left">
-      Bot 1
-      <div class="cards vertical" id="bot1-hand"></div>
+      <div class="player-name" id="name-left">Bot 1</div>
+      <div class="cards vertical" id="hand-left"></div>
+      <div class="subinfo" id="sub-left"></div>
     </div>
 
     <div class="player right">
-      Bot 3
-      <div class="cards vertical" id="bot3-hand"></div>
+      <div class="player-name" id="name-right">Bot 3</div>
+      <div class="cards vertical" id="hand-right"></div>
+      <div class="subinfo" id="sub-right"></div>
     </div>
 
     <div class="player bottom">
-      You
-      <div class="cards" id="player-hand"></div>
+      <div class="player-name" id="name-bottom">You</div>
+      <div class="cards" id="hand-bottom"></div>
+      <div class="subinfo" id="sub-bottom"></div>
     </div>
 
     <div class="center-area">
+      <div class="trick-label">Current Trick</div>
       <div id="table-top"></div>
       <div id="table-left"></div>
       <div id="table-right"></div>
@@ -250,44 +394,53 @@
     <div class="status" id="status">Press New Match</div>
 
     <div class="bid-box" id="bid-box" style="display:none;">
-      <div style="margin-bottom:10px;">Choose your bid</div>
-      <div id="bid-buttons"></div>
+      <div style="font-weight:bold;">Choose your bid</div>
+      <div style="margin-top:6px; color:#d7e7dd; font-size:14px;">
+        How many tricks do you think you’ll win this round?
+      </div>
+      <div class="bid-buttons" id="bid-buttons"></div>
     </div>
   </div>
 
   <script>
-    const suits = ["♠", "♥", "♦", "♣"];
-    const ranks = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-    const rankValue = { "6": 1, "7": 2, "8": 3, "9": 4, "10": 5, "J": 6, "Q": 7, "K": 8, "A": 9 };
+    const SUITS = ["♠", "♥", "♦", "♣"];
+    const RANKS = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    const RANK_VALUE = { "6": 1, "7": 2, "8": 3, "9": 4, "10": 5, "J": 6, "Q": 7, "K": 8, "A": 9 };
+    const ORDER = ["bottom", "left", "top", "right"];
 
     let roundNumber = 1;
     let trumpSuit = null;
     let leadSeat = "bottom";
     let turnOrder = [];
     let currentTurnIndex = 0;
+    let historyRows = [];
 
-    let hands = {
-      bottom: [],
-      left: [],
-      top: [],
-      right: []
-    };
-
+    let hands = {};
     let tableCards = {};
-    let players = {
-      bottom: { name: "You", bid: null, won: 0, points: 0 },
-      left: { name: "Bot 1", bid: null, won: 0, points: 0 },
-      top: { name: "Bot 2", bid: null, won: 0, points: 0 },
-      right: { name: "Bot 3", bid: null, won: 0, points: 0 }
-    };
+    let players = {};
+
+    function freshPlayers() {
+      return {
+        bottom: { name: "You", bid: null, won: 0, points: 0 },
+        left: { name: "Bot 1", bid: null, won: 0, points: 0 },
+        top: { name: "Bot 2", bid: null, won: 0, points: 0 },
+        right: { name: "Bot 3", bid: null, won: 0, points: 0 }
+      };
+    }
+
+    function freshHands() {
+      return { bottom: [], left: [], top: [], right: [] };
+    }
 
     function makeDeck() {
       const deck = [];
-      for (const suit of suits) {
-        for (const rank of ranks) {
-          deck.push({ suit, rank });
+      for (const suit of SUITS) {
+        for (const rank of RANKS) {
+          deck.push({ suit, rank, joker: false });
         }
       }
+      deck.push({ suit: "J", rank: "🃏", joker: true, color: "black" });
+      deck.push({ suit: "J", rank: "🃏", joker: true, color: "red" });
       return deck;
     }
 
@@ -298,16 +451,45 @@
       }
     }
 
-    function isRed(suit) {
-      return suit === "♥" || suit === "♦";
+    function isRedCard(card) {
+      return card.joker ? card.color === "red" : (card.suit === "♥" || card.suit === "♦");
     }
 
-    function drawCardElement(card, clickable = false, onClick = null) {
+    function buildTurnOrder(startSeat) {
+      const idx = ORDER.indexOf(startSeat);
+      return [...ORDER.slice(idx), ...ORDER.slice(0, idx)];
+    }
+
+    function setStatus(text) {
+      document.getElementById("status").textContent = text;
+    }
+
+    function setTopbar(text) {
+      document.getElementById("topbar").textContent = text;
+    }
+
+    function suitIconText(card) {
+      if (card.joker) return "🃏";
+      return card.rank + card.suit;
+    }
+
+    function drawCard(card, clickable = false, onClick = null, disabled = false, small = false) {
       const div = document.createElement("div");
       div.className = "card";
-      if (isRed(card.suit)) div.classList.add("red");
-      div.textContent = card.rank + card.suit;
-      if (clickable && onClick) div.onclick = onClick;
+      if (small) div.classList.add("small");
+      if (isRedCard(card)) div.classList.add("red");
+      if (disabled) div.classList.add("disabled");
+
+      div.textContent = suitIconText(card);
+
+      if (card.joker) {
+        const label = document.createElement("div");
+        label.className = "joker-label";
+        label.textContent = card.color === "red" ? "RED" : "BLACK";
+        div.appendChild(label);
+      }
+
+      if (clickable && !disabled && onClick) div.onclick = onClick;
       return div;
     }
 
@@ -321,38 +503,132 @@
     function drawTableCard(card, posClass) {
       const div = document.createElement("div");
       div.className = "table-card " + posClass;
-      if (isRed(card.suit)) div.classList.add("red");
-      div.textContent = card.rank + card.suit;
+      if (isRedCard(card)) div.classList.add("red");
+      div.textContent = suitIconText(card);
       return div;
     }
 
-    function setStatus(text) {
-      document.getElementById("status").textContent = text;
+    function sortHand(hand) {
+      hand.sort((a, b) => {
+        if (a.joker && !b.joker) return 1;
+        if (!a.joker && b.joker) return -1;
+        if (a.joker && b.joker) return (a.color > b.color ? 1 : -1);
+        const suitIndexA = SUITS.indexOf(a.suit);
+        const suitIndexB = SUITS.indexOf(b.suit);
+        if (suitIndexA !== suitIndexB) return suitIndexA - suitIndexB;
+        return RANK_VALUE[a.rank] - RANK_VALUE[b.rank];
+      });
     }
 
-    function updateTopbar(text) {
-      document.getElementById("topbar").textContent = text;
+    function resetRoundState() {
+      tableCards = {};
+      for (const seat of ORDER) {
+        players[seat].bid = null;
+        players[seat].won = 0;
+      }
+    }
+
+    function dealCards() {
+      const deck = makeDeck();
+      shuffle(deck);
+      hands = freshHands();
+
+      for (const seat of ORDER) {
+        hands[seat] = deck.splice(0, 5);
+        sortHand(hands[seat]);
+      }
+
+      trumpSuit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    }
+
+    function startMatch() {
+      roundNumber = 1;
+      historyRows = [];
+      players = freshPlayers();
+      startRound();
+    }
+
+    function startRound() {
+      resetRoundState();
+      dealCards();
+      leadSeat = "bottom";
+      turnOrder = buildTurnOrder(leadSeat);
+      currentTurnIndex = 0;
+
+      renderEverything();
+      setTopbar("Bidding phase");
+      setStatus("Choose your bid");
+      showBidBox();
+    }
+
+    function showBidBox() {
+      const box = document.getElementById("bid-box");
+      const btns = document.getElementById("bid-buttons");
+      btns.innerHTML = "";
+      for (let i = 0; i <= 5; i++) {
+        const b = document.createElement("button");
+        b.textContent = i;
+        b.onclick = () => chooseHumanBid(i);
+        btns.appendChild(b);
+      }
+      box.style.display = "block";
+    }
+
+    function chooseHumanBid(value) {
+      players.bottom.bid = value;
+      assignBotBids();
+      document.getElementById("bid-box").style.display = "none";
+      setTopbar("Play phase");
+      setStatus("Your turn — click a card");
+      renderEverything();
+    }
+
+    function assignBotBids() {
+      for (const seat of ["left", "top", "right"]) {
+        const strongCards = hands[seat].filter(c =>
+          c.joker || (!c.joker && (c.suit === trumpSuit && RANK_VALUE[c.rank] >= 6)) || (!c.joker && RANK_VALUE[c.rank] >= 8)
+        ).length;
+        let bid = Math.min(5, Math.max(0, Math.round(strongCards / 2)));
+        if (Math.random() < 0.25) bid += (Math.random() < 0.5 ? -1 : 1);
+        bid = Math.max(0, Math.min(5, bid));
+        players[seat].bid = bid;
+      }
+    }
+
+    function renderEverything() {
+      renderMeta();
+      renderHands();
+      renderTable();
+      renderScoreboard();
+      renderHistory();
+      renderSubInfo();
+    }
+
+    function renderMeta() {
+      document.getElementById("round-info").textContent = roundNumber;
+      document.getElementById("trump-info").textContent = trumpSuit || "?";
+      document.getElementById("lead-info").textContent = players[leadSeat]?.name || "You";
     }
 
     function renderHands() {
-      const player = document.getElementById("player-hand");
-      const bot1 = document.getElementById("bot1-hand");
-      const bot2 = document.getElementById("bot2-hand");
-      const bot3 = document.getElementById("bot3-hand");
+      for (const seat of ORDER) {
+        const container = document.getElementById("hand-" + seat);
+        container.innerHTML = "";
+      }
 
-      player.innerHTML = "";
-      bot1.innerHTML = "";
-      bot2.innerHTML = "";
-      bot3.innerHTML = "";
+      const playerTurn = turnOrder[currentTurnIndex] === "bottom" && players.bottom.bid !== null;
 
       hands.bottom.forEach((card, index) => {
-        const clickable = turnOrder[currentTurnIndex] === "bottom";
-        player.appendChild(drawCardElement(card, clickable, () => tryPlayHuman(index)));
+        const valid = validCardsForSeat("bottom");
+        const disabled = !playerTurn || !valid.some(c => sameCard(c, card));
+        const el = drawCard(card, true, () => tryHumanPlay(index), disabled);
+        if (playerTurn && !disabled) el.classList.add("you-turn");
+        document.getElementById("hand-bottom").appendChild(el);
       });
 
-      hands.left.forEach(() => bot1.appendChild(drawBack()));
-      hands.top.forEach(() => bot2.appendChild(drawBack()));
-      hands.right.forEach(() => bot3.appendChild(drawBack()));
+      hands.left.forEach(() => document.getElementById("hand-left").appendChild(drawBack()));
+      hands.top.forEach(() => document.getElementById("hand-top").appendChild(drawBack()));
+      hands.right.forEach(() => document.getElementById("hand-right").appendChild(drawBack()));
     }
 
     function renderTable() {
@@ -368,112 +644,60 @@
     }
 
     function renderScoreboard() {
-      document.getElementById("round-info").textContent = "Round: " + roundNumber;
-      document.getElementById("trump-info").textContent = "Trump: " + (trumpSuit || "?");
-
       const body = document.getElementById("score-body");
       body.innerHTML = "";
-
-      ["bottom", "left", "top", "right"].forEach(seat => {
+      for (const seat of ORDER) {
         const p = players[seat];
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${p.name}</td>
           <td>${p.bid === null ? "-" : p.bid}</td>
           <td>${p.won}</td>
-          <td>${p.points}</td>
+          <td class="${seat === 'bottom' ? 'highlight' : ''}">${p.points}</td>
+        `;
+        body.appendChild(tr);
+      }
+    }
+
+    function renderHistory() {
+      const body = document.getElementById("history-body");
+      body.innerHTML = "";
+      historyRows.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.round}</td>
+          <td>${row.bottom}</td>
+          <td>${row.left}</td>
+          <td>${row.top}</td>
+          <td>${row.right}</td>
         `;
         body.appendChild(tr);
       });
     }
 
-    function resetRoundState() {
-      tableCards = {};
-      players.bottom.bid = null;
-      players.left.bid = null;
-      players.top.bid = null;
-      players.right.bid = null;
-      players.bottom.won = 0;
-      players.left.won = 0;
-      players.top.won = 0;
-      players.right.won = 0;
-    }
-
-    function dealCards() {
-      const deck = makeDeck();
-      shuffle(deck);
-
-      hands.bottom = deck.splice(0, 5);
-      hands.left = deck.splice(0, 5);
-      hands.top = deck.splice(0, 5);
-      hands.right = deck.splice(0, 5);
-
-      trumpSuit = suits[Math.floor(Math.random() * suits.length)];
-    }
-
-    function startMatch() {
-      roundNumber = 1;
-      players.bottom.points = 0;
-      players.left.points = 0;
-      players.top.points = 0;
-      players.right.points = 0;
-      startRound();
-    }
-
-    function startRound() {
-      resetRoundState();
-      dealCards();
-      leadSeat = "bottom";
-      turnOrder = buildTurnOrder(leadSeat);
-      currentTurnIndex = 0;
-
-      renderHands();
-      renderTable();
-      renderScoreboard();
-      updateTopbar("Bidding phase");
-      setStatus("Choose your bid");
-      showBidBox();
-    }
-
-    function buildTurnOrder(startSeat) {
-      const order = ["bottom", "left", "top", "right"];
-      const idx = order.indexOf(startSeat);
-      return [...order.slice(idx), ...order.slice(0, idx)];
-    }
-
-    function showBidBox() {
-      const box = document.getElementById("bid-box");
-      const btns = document.getElementById("bid-buttons");
-      btns.innerHTML = "";
-      for (let i = 0; i <= 5; i++) {
-        const b = document.createElement("button");
-        b.textContent = i;
-        b.onclick = () => setHumanBid(i);
-        btns.appendChild(b);
+    function renderSubInfo() {
+      for (const seat of ORDER) {
+        const p = players[seat];
+        const node = document.getElementById("sub-" + seat);
+        node.textContent =
+          "Bid: " + (p.bid === null ? "-" : p.bid) +
+          " | Won: " + p.won +
+          " | Cards: " + hands[seat].length;
       }
-      box.style.display = "block";
     }
 
-    function setHumanBid(value) {
-      players.bottom.bid = value;
-      players.left.bid = randomBotBid();
-      players.top.bid = randomBotBid();
-      players.right.bid = randomBotBid();
-
-      document.getElementById("bid-box").style.display = "none";
-      renderScoreboard();
-      updateTopbar("Play phase");
-      setStatus("Your turn — click a card");
-      renderHands();
-    }
-
-    function randomBotBid() {
-      return Math.floor(Math.random() * 3);
+    function sameCard(a, b) {
+      return a.joker === b.joker &&
+        a.rank === b.rank &&
+        a.suit === b.suit &&
+        a.color === b.color;
     }
 
     function getLeadSuit() {
       const firstSeat = turnOrder[0];
-      return tableCards[firstSeat] ? tableCards[firstSeat].suit : null;
+      const firstCard = tableCards[firstSeat];
+      if (!firstCard || firstCard.joker) return null;
+      return firstCard.suit;
     }
 
     function validCardsForSeat(seat) {
@@ -481,19 +705,19 @@
       const leadSuit = getLeadSuit();
       if (!leadSuit) return hand;
 
-      const sameSuit = hand.filter(c => c.suit === leadSuit);
+      const sameSuit = hand.filter(c => !c.joker && c.suit === leadSuit);
       return sameSuit.length > 0 ? sameSuit : hand;
     }
 
-    function tryPlayHuman(index) {
+    function tryHumanPlay(index) {
+      if (players.bottom.bid === null) return;
       if (turnOrder[currentTurnIndex] !== "bottom") return;
 
       const chosen = hands.bottom[index];
       const valid = validCardsForSeat("bottom");
-      const allowed = valid.some(c => c.rank === chosen.rank && c.suit === chosen.suit);
 
-      if (!allowed) {
-        alert("You must follow suit.");
+      if (!valid.some(c => sameCard(c, chosen))) {
+        alert("You must follow suit if you can.");
         return;
       }
 
@@ -504,14 +728,63 @@
     function playCard(seat, index) {
       const card = hands[seat].splice(index, 1)[0];
       tableCards[seat] = card;
-      renderHands();
-      renderTable();
+      renderEverything();
+    }
+
+    function botChooseCard(seat) {
+      const valid = validCardsForSeat(seat);
+      const leadSuit = getLeadSuit();
+      const hand = hands[seat];
+
+      if (Object.keys(tableCards).length === 0) {
+        const nonJoker = hand.filter(c => !c.joker);
+        if (nonJoker.length > 0) {
+          nonJoker.sort((a, b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank]);
+          return nonJoker[0];
+        }
+        return hand[0];
+      }
+
+      let winningCard = null;
+      let winningSeat = null;
+      for (const s of turnOrder) {
+        if (tableCards[s]) {
+          if (!winningCard) {
+            winningCard = tableCards[s];
+            winningSeat = s;
+          } else if (cardBeats(tableCards[s], winningCard, leadSuit, trumpSuit)) {
+            winningCard = tableCards[s];
+            winningSeat = s;
+          }
+        }
+      }
+
+      const canBeat = valid.filter(c => cardBeats(c, winningCard, leadSuit, trumpSuit));
+      const p = players[seat];
+
+      if (p.won < p.bid && canBeat.length > 0) {
+        canBeat.sort(compareCardStrength);
+        return canBeat[0];
+      }
+
+      valid.sort(compareCardStrength);
+      return valid[0];
+    }
+
+    function compareCardStrength(a, b) {
+      return effectiveStrength(a) - effectiveStrength(b);
+    }
+
+    function effectiveStrength(card) {
+      if (card.joker) return 100;
+      let base = RANK_VALUE[card.rank];
+      if (card.suit === trumpSuit) base += 20;
+      return base;
     }
 
     function botPlay(seat) {
-      const valid = validCardsForSeat(seat);
-      const chosen = valid[Math.floor(Math.random() * valid.length)];
-      const index = hands[seat].findIndex(c => c.rank === chosen.rank && c.suit === chosen.suit);
+      const chosen = botChooseCard(seat);
+      const index = hands[seat].findIndex(c => sameCard(c, chosen));
       playCard(seat, index);
     }
 
@@ -524,10 +797,9 @@
       }
 
       const seat = turnOrder[currentTurnIndex];
-
       if (seat === "bottom") {
         setStatus("Your turn — click a card");
-        renderHands();
+        renderEverything();
       } else {
         setStatus(players[seat].name + " is thinking...");
         setTimeout(() => {
@@ -538,6 +810,10 @@
     }
 
     function cardBeats(a, b, leadSuit, trumpSuit) {
+      if (a.joker && !b.joker) return true;
+      if (!a.joker && b.joker) return false;
+      if (a.joker && b.joker) return false;
+
       const aTrump = a.suit === trumpSuit;
       const bTrump = b.suit === trumpSuit;
 
@@ -545,15 +821,18 @@
       if (!aTrump && bTrump) return false;
 
       if (a.suit === b.suit) {
-        return rankValue[a.rank] > rankValue[b.rank];
+        return RANK_VALUE[a.rank] > RANK_VALUE[b.rank];
       }
 
-      if (a.suit === leadSuit && b.suit !== leadSuit) return true;
+      if (leadSuit) {
+        if (a.suit === leadSuit && b.suit !== leadSuit && !bTrump) return true;
+      }
+
       return false;
     }
 
     function finishTrick() {
-      const leadSuit = tableCards[turnOrder[0]].suit;
+      const leadSuit = getLeadSuit();
       let winnerSeat = turnOrder[0];
       let winnerCard = tableCards[winnerSeat];
 
@@ -569,14 +848,15 @@
       players[winnerSeat].won += 1;
       leadSeat = winnerSeat;
 
-      renderScoreboard();
+      renderEverything();
       setStatus("Trick winner: " + players[winnerSeat].name);
 
       setTimeout(() => {
         tableCards = {};
-        renderTable();
+        renderEverything();
 
-        if (hands.bottom.length === 0 && hands.left.length === 0 && hands.top.length === 0 && hands.right.length === 0) {
+        const done = ORDER.every(seat => hands[seat].length === 0);
+        if (done) {
           finishRound();
           return;
         }
@@ -586,7 +866,7 @@
 
         if (turnOrder[0] === "bottom") {
           setStatus("Your turn — click a card");
-          renderHands();
+          renderEverything();
         } else {
           const seat = turnOrder[0];
           setStatus(players[seat].name + " starts");
@@ -598,23 +878,34 @@
       }, 1200);
     }
 
+    function roundPointsFor(seat) {
+      const p = players[seat];
+      if (p.bid === p.won) return 10 + p.bid;
+      return -Math.abs(p.bid - p.won);
+    }
+
     function finishRound() {
-      ["bottom", "left", "top", "right"].forEach(seat => {
-        const p = players[seat];
-        if (p.bid === p.won) {
-          p.points += 10 + p.bid;
-        }
+      for (const seat of ORDER) {
+        players[seat].points += roundPointsFor(seat);
+      }
+
+      historyRows.unshift({
+        round: roundNumber,
+        bottom: `${players.bottom.bid}/${players.bottom.won}/${roundPointsFor("bottom")}`,
+        left: `${players.left.bid}/${players.left.won}/${roundPointsFor("left")}`,
+        top: `${players.top.bid}/${players.top.won}/${roundPointsFor("top")}`,
+        right: `${players.right.bid}/${players.right.won}/${roundPointsFor("right")}`
       });
 
-      renderScoreboard();
-      updateTopbar("Round finished");
-      setStatus("Round over");
+      renderEverything();
+      setTopbar("Round finished");
+      setStatus("Round " + roundNumber + " over");
 
       roundNumber++;
 
       setTimeout(() => {
         startRound();
-      }, 2000);
+      }, 2200);
     }
   </script>
 </body>
