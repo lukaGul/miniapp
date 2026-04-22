@@ -1,78 +1,357 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Avoid Game</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Joker Prototype</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       margin: 0;
-      overflow: hidden;
-      background: #111;
+      font-family: Arial, sans-serif;
+      background: #0b5d3b;
       color: white;
-      font-family: Arial;
-      text-align: center;
+      overflow: hidden;
     }
-    #score {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      font-size: 24px;
+
+    .table {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
     }
-    .btn {
+
+    .player {
       position: absolute;
-      padding: 20px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .top { top: 20px; left: 50%; transform: translateX(-50%); }
+    .left { left: 20px; top: 50%; transform: translateY(-50%); }
+    .right { right: 20px; top: 50%; transform: translateY(-50%); }
+    .bottom { bottom: 20px; left: 50%; transform: translateX(-50%); }
+
+    .cards {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 90vw;
+    }
+
+    .card {
+      width: 54px;
+      height: 78px;
+      background: white;
+      color: black;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      border: 2px solid #ddd;
+    }
+
+    .card.red {
+      color: red;
+    }
+
+    .card.back {
+      background: #1e3a8a;
+      color: white;
+      border: 2px solid #93c5fd;
+      cursor: default;
+    }
+
+    .center-area {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 320px;
+      height: 220px;
+      transform: translate(-50%, -50%);
+      border: 2px dashed rgba(255,255,255,0.4);
+      border-radius: 20px;
+    }
+
+    .table-card {
+      position: absolute;
+      width: 60px;
+      height: 84px;
+      background: white;
+      color: black;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border: 2px solid #ddd;
+    }
+
+    .table-card.red {
+      color: red;
+    }
+
+    .from-top { top: 10px; left: 50%; transform: translateX(-50%); }
+    .from-left { left: 10px; top: 50%; transform: translateY(-50%); }
+    .from-right { right: 10px; top: 50%; transform: translateY(-50%); }
+    .from-bottom { bottom: 10px; left: 50%; transform: translateX(-50%); }
+
+    .status {
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.35);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 16px;
+    }
+
+    .controls {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+    }
+
+    button {
+      padding: 10px 14px;
       border: none;
       border-radius: 10px;
-      font-size: 18px;
+      font-weight: bold;
       cursor: pointer;
-    }
-    .good {
-      background: green;
-    }
-    .bad {
-      background: red;
     }
   </style>
 </head>
 <body>
+  <div class="table">
+    <div class="controls">
+      <button onclick="startGame()">New Game</button>
+    </div>
 
-<div id="score">Score: 0</div>
+    <div class="player top">
+      Bot 2
+      <div class="cards" id="bot2-hand"></div>
+    </div>
 
-<button id="good" class="btn good">+1</button>
-<button id="bad" class="btn bad">💀</button>
+    <div class="player left">
+      Bot 1
+      <div class="cards" id="bot1-hand" style="flex-direction: column;"></div>
+    </div>
 
-<script>
-let score = 0;
+    <div class="player right">
+      Bot 3
+      <div class="cards" id="bot3-hand" style="flex-direction: column;"></div>
+    </div>
 
-const goodBtn = document.getElementById("good");
-const badBtn = document.getElementById("bad");
+    <div class="player bottom">
+      You
+      <div class="cards" id="player-hand"></div>
+    </div>
 
-function moveButtons() {
-  const width = window.innerWidth - 100;
-  const height = window.innerHeight - 100;
+    <div class="center-area" id="table-area">
+      <div id="table-top"></div>
+      <div id="table-left"></div>
+      <div id="table-right"></div>
+      <div id="table-bottom"></div>
+    </div>
 
-  goodBtn.style.left = Math.random() * width + "px";
-  goodBtn.style.top = Math.random() * height + "px";
+    <div class="status" id="status">Press "New Game"</div>
+  </div>
 
-  badBtn.style.left = Math.random() * width + "px";
-  badBtn.style.top = Math.random() * height + "px";
-}
+  <script>
+    const suits = ["♠", "♥", "♦", "♣"];
+    const ranks = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    const rankValue = { "6": 1, "7": 2, "8": 3, "9": 4, "10": 5, "J": 6, "Q": 7, "K": 8, "A": 9 };
 
-goodBtn.onclick = () => {
-  score++;
-  document.getElementById("score").innerText = "Score: " + score;
-  moveButtons();
-};
+    let playerHand = [];
+    let bot1Hand = [];
+    let bot2Hand = [];
+    let bot3Hand = [];
+    let tableCards = {};
+    let playerCanPlay = true;
 
-badBtn.onclick = () => {
-  alert("Game Over! Score: " + score);
-  score = 0;
-  document.getElementById("score").innerText = "Score: 0";
-  moveButtons();
-};
+    function makeDeck() {
+      const deck = [];
+      for (const suit of suits) {
+        for (const rank of ranks) {
+          deck.push({ suit, rank });
+        }
+      }
+      return deck;
+    }
 
-moveButtons();
-</script>
+    function shuffle(deck) {
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+    }
 
+    function drawCardElement(card, clickable = false, onClick = null) {
+      const div = document.createElement("div");
+      div.className = "card";
+      if (card.suit === "♥" || card.suit === "♦") div.classList.add("red");
+      div.textContent = card.rank + card.suit;
+      if (clickable && onClick) div.onclick = onClick;
+      return div;
+    }
+
+    function drawBack() {
+      const div = document.createElement("div");
+      div.className = "card back";
+      div.textContent = "🂠";
+      return div;
+    }
+
+    function renderHands() {
+      const player = document.getElementById("player-hand");
+      const bot1 = document.getElementById("bot1-hand");
+      const bot2 = document.getElementById("bot2-hand");
+      const bot3 = document.getElementById("bot3-hand");
+
+      player.innerHTML = "";
+      bot1.innerHTML = "";
+      bot2.innerHTML = "";
+      bot3.innerHTML = "";
+
+      playerHand.forEach((card, index) => {
+        const el = drawCardElement(card, playerCanPlay, () => playPlayerCard(index));
+        player.appendChild(el);
+      });
+
+      bot1Hand.forEach(() => bot1.appendChild(drawBack()));
+      bot2Hand.forEach(() => bot2.appendChild(drawBack()));
+      bot3Hand.forEach(() => bot3.appendChild(drawBack()));
+    }
+
+    function renderTable() {
+      document.getElementById("table-top").innerHTML = "";
+      document.getElementById("table-left").innerHTML = "";
+      document.getElementById("table-right").innerHTML = "";
+      document.getElementById("table-bottom").innerHTML = "";
+
+      if (tableCards.top) {
+        const el = drawCardElement(tableCards.top);
+        el.classList.add("table-card", "from-top");
+        document.getElementById("table-top").appendChild(el);
+      }
+      if (tableCards.left) {
+        const el = drawCardElement(tableCards.left);
+        el.classList.add("table-card", "from-left");
+        document.getElementById("table-left").appendChild(el);
+      }
+      if (tableCards.right) {
+        const el = drawCardElement(tableCards.right);
+        el.classList.add("table-card", "from-right");
+        document.getElementById("table-right").appendChild(el);
+      }
+      if (tableCards.bottom) {
+        const el = drawCardElement(tableCards.bottom);
+        el.classList.add("table-card", "from-bottom");
+        document.getElementById("table-bottom").appendChild(el);
+      }
+    }
+
+    function setStatus(text) {
+      document.getElementById("status").textContent = text;
+    }
+
+    function startGame() {
+      let deck = makeDeck();
+      shuffle(deck);
+
+      playerHand = deck.splice(0, 5);
+      bot1Hand = deck.splice(0, 5);
+      bot2Hand = deck.splice(0, 5);
+      bot3Hand = deck.splice(0, 5);
+
+      tableCards = {};
+      playerCanPlay = true;
+
+      renderHands();
+      renderTable();
+      setStatus("Your turn. Tap a card.");
+    }
+
+    function playPlayerCard(index) {
+      if (!playerCanPlay) return;
+
+      const card = playerHand.splice(index, 1)[0];
+      tableCards.bottom = card;
+      playerCanPlay = false;
+
+      renderHands();
+      renderTable();
+      setStatus("Bots are playing...");
+
+      setTimeout(bot1Play, 600);
+    }
+
+    function bot1Play() {
+      if (bot1Hand.length > 0) {
+        const index = Math.floor(Math.random() * bot1Hand.length);
+        tableCards.left = bot1Hand.splice(index, 1)[0];
+      }
+      renderHands();
+      renderTable();
+      setTimeout(bot2Play, 600);
+    }
+
+    function bot2Play() {
+      if (bot2Hand.length > 0) {
+        const index = Math.floor(Math.random() * bot2Hand.length);
+        tableCards.top = bot2Hand.splice(index, 1)[0];
+      }
+      renderHands();
+      renderTable();
+      setTimeout(bot3Play, 600);
+    }
+
+    function bot3Play() {
+      if (bot3Hand.length > 0) {
+        const index = Math.floor(Math.random() * bot3Hand.length);
+        tableCards.right = bot3Hand.splice(index, 1)[0];
+      }
+      renderHands();
+      renderTable();
+      setTimeout(finishTrick, 900);
+    }
+
+    function finishTrick() {
+      const plays = [
+        { seat: "You", card: tableCards.bottom },
+        { seat: "Bot 1", card: tableCards.left },
+        { seat: "Bot 2", card: tableCards.top },
+        { seat: "Bot 3", card: tableCards.right }
+      ].filter(x => x.card);
+
+      let winner = plays[0];
+      for (const play of plays) {
+        if (rankValue[play.card.rank] > rankValue[winner.card.rank]) {
+          winner = play;
+        }
+      }
+
+      setStatus("Trick winner: " + winner.seat);
+
+      setTimeout(() => {
+        tableCards = {};
+        renderTable();
+
+        if (playerHand.length === 0) {
+          setStatus("Round finished. Press New Game.");
+          return;
+        }
+
+        playerCanPlay = true;
+        renderHands();
+        setStatus("Your turn. Tap a card.");
+      }, 1400);
+    }
+  </script>
 </body>
 </html>
